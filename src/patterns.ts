@@ -114,6 +114,36 @@ export const applyTemplate = (
   return local ? `${local}@${domain}` : null;
 };
 
+// Narrow a stored string back to a PatternTemplate (e.g. reading one out of a
+// database) without a cast — null if it isn't a known template.
+export const asTemplate = (value: string): PatternTemplate | null => {
+  for (const template of TEMPLATE_ORDER) {
+    if (template === value) return template;
+  }
+
+  return null;
+};
+
+// Reverse-engineer which template produced a known-good email for a known name.
+// This is the self-healing input: every confirmed address we ever see (a PDL
+// result, a reply, a manual entry) teaches us the domain's pattern — no probing,
+// no verifier. Returns the first (most-likely) template whose output matches.
+export const inferTemplate = (
+  name: NameParts,
+  email: string,
+): PatternTemplate | null => {
+  const atIndex = email.lastIndexOf("@");
+  const localpart = (atIndex === -1 ? email : email.slice(0, atIndex))
+    .trim()
+    .toLowerCase();
+  if (!localpart) return null;
+  for (const template of TEMPLATE_ORDER) {
+    if (buildLocal(template, name) === localpart) return template;
+  }
+
+  return null;
+};
+
 export type TemplatedCandidate = { template: PatternTemplate; email: string };
 
 // All candidate addresses (template + email), best-first, deduped.

@@ -11,7 +11,9 @@ export {
 } from "./findEmail";
 export {
   applyTemplate,
+  asTemplate,
   emailPatterns,
+  inferTemplate,
   parseName,
   templatedCandidates,
   type NameInput,
