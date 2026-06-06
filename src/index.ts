@@ -10,10 +10,14 @@ export {
   type FindEmailResult,
 } from "./findEmail";
 export {
+  applyTemplate,
   emailPatterns,
   parseName,
+  templatedCandidates,
   type NameInput,
   type NameParts,
+  type PatternTemplate,
+  type TemplatedCandidate,
 } from "./patterns";
 export { probeMailbox, type SmtpProbeOptions } from "./smtp";
 export {
@@ -22,3 +26,8 @@ export {
   type VerifyOptions,
   type VerifyResult,
 } from "./verify";
+export {
+  smtpVerifier,
+  type EmailVerifier,
+  type VerifierResult,
+} from "./verifier";

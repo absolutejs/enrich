@@ -10,24 +10,45 @@ inputs (a name + a company domain); this resolves and verifies the email.
 
 ## What it does
 
-- **`verifyEmail(email)`** — syntax → disposable/free/role heuristics → MX →
-  catch-all probe → SMTP `RCPT TO` → a 0–100 confidence + status
-  (`deliverable` / `risky` / `undeliverable` / `unknown`).
-- **`findEmail({ firstName, lastName | fullName, domain })`** — generates the
-  ~12 corporate patterns and resolves them on the company's mail server, returning
-  the SMTP-confirmed address (or the best pattern at lower confidence). The
-  returned `pattern` can be reused to guess other people at the same company
-  without re-probing.
+- **`findEmail({ firstName, lastName | fullName, domain }, { verifier?, knownPattern? })`**
+  — generates the corporate patterns (`first.last`, `flast`, …), then:
+  1. a **`knownPattern`** (one you've already learned for this domain) is applied
+     directly — no probing,
+  2. with a **`verifier`** it confirms candidates best-first and returns the one
+     that's deliverable,
+  3. with neither it returns the top pattern at MX-only confidence.
+  The result's **`template`** (e.g. `"first.last"`) is the learnable unit — store
+  it per domain and pass it back as `knownPattern` to skip probing for everyone
+  else there.
+- **`verifyEmail(email)`** — the full local pipeline: syntax → disposable/free/role
+  → MX → (optional, opt-in) catch-all + SMTP probe → 0–100 confidence + status.
 
 ```ts
-import { findEmail, verifyEmail } from "@absolutejs/enrich";
+import { findEmail } from "@absolutejs/enrich";
 
+// Discovery-only — no SMTP, no third-party call:
 await findEmail({ fullName: "Jane Doe", domain: "acme.com" });
-// → { email: "jane.doe@acme.com", status: "deliverable", confidence: 95, pattern: "first.last", catchAll: false }
+// → { email: "jane.doe@acme.com", status: "unknown", confidence: 45, template: "first.last" }
 
-await verifyEmail("jane.doe@acme.com");
-// → { status: "deliverable", confidence: 95, mxFound: true, catchAll: false, ... }
+// With a verifier you bring (ZeroBounce / Hunter / your ESP):
+await findEmail({ fullName: "Jane Doe", domain: "acme.com" }, { verifier });
+// → { email: "jane.doe@acme.com", status: "deliverable", confidence: 95, template: "first.last" }
 ```
+
+## The verifier is pluggable — and that's the point
+
+The "confirm" step is an interface, not a baked-in SMTP probe:
+
+```ts
+type EmailVerifier = (email: string) => Promise<{ status; confidence; catchAll? }>;
+```
+
+Bring a thin wrapper over a **specialist** (ZeroBounce, NeverBounce, Hunter's
+verifier, or your ESP's validation). Why not just probe SMTP ourselves? Because
+`RCPT TO` probing is mechanically a **directory-harvest attack** — mail servers
+detect it and **blacklist the probing IP**, which then tanks *your own* sending
+reputation. The specialists run it from warmed, rotated IP pools built to absorb
+that. Let them carry the risk for pennies a check; keep your domains clean.
 
 ## Confidence scale
 
@@ -38,20 +59,19 @@ await verifyEmail("jane.doe@acme.com");
 | 45 | MX exists, SMTP inconclusive (port 25 blocked, greylisted, or `skipSmtp`) |
 | 0  | invalid syntax / no MX / SMTP-rejected / disposable |
 
-## The one piece of infrastructure: outbound port 25
+## The built-in SMTP verifier (`smtpVerifier`) is opt-in — and carries warnings
 
-SMTP verification opens a connection to the target's mail server on **port 25**.
-Most clouds (AWS, GCP, DigitalOcean) **block outbound port 25 by default** to fight
-spam. Without it, every probe degrades gracefully to **MX-only confidence (45)** —
-the library still validates the domain and returns the best-guess pattern, just
-not SMTP-confirmed. To unlock the 95-confidence path:
+The package ships `smtpVerifier()` so you *can* self-host the confirm step, but
+it's deliberately not the default:
 
-- Request a port-25 unblock from your provider (DigitalOcean grants these on
-  request), **or**
-- Run probes through a small relay / proxy box that has port 25 egress, **or**
-- Pass `skipSmtp: true` to stay MX-only deliberately.
+- It needs **outbound port 25**, which AWS/GCP/DigitalOcean **block by default**.
+- Even with egress, probing **risks blacklisting your IP** (see above) and the
+  biggest mail hosts (Gmail, Microsoft) **return ambiguous answers to defeat
+  harvesters** — so its accuracy is degraded where it matters most.
 
-Use a real `heloHost` / `fromEmail` you control (`SmtpProbeOptions`) so receiving
-servers treat the probe as legitimate. The library is the engine; the egress IP
-reputation is yours to own — that, plus an aggregated dataset, is the only moat
-the paid providers actually have.
+Only reach for it from a host/relay you've dedicated to verification and whose
+reputation you're willing to spend. For everyone else: `findEmail` discovers the
+pattern (free, zero abuse signature), a specialist verifier confirms it, and you
+**store the confirmed `template` per domain** — over time that learned dataset,
+built from real outcomes rather than probing, is the moat the paid providers
+actually have.

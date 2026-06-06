@@ -14,8 +14,77 @@ export type NameInput = {
   fullName?: string;
 };
 
-// Resolve {first,last} from explicit fields or a full name. Returns null when
-// there isn't even a first name to work with.
+// Named local-part shapes. The NAME (not the concrete address) is what the
+// learning loop stores per domain: once we know acme.com is "first.last", we
+// apply it to everyone else there without re-probing.
+export type PatternTemplate =
+  | "first.last"
+  | "firstlast"
+  | "flast"
+  | "first"
+  | "first_last"
+  | "f.last"
+  | "first-last"
+  | "last.first"
+  | "lastf"
+  | "last"
+  | "firstl"
+  | "fl";
+
+// Likelihood order, best-first (rough real-world frequency).
+const TEMPLATE_ORDER: PatternTemplate[] = [
+  "first.last",
+  "firstlast",
+  "flast",
+  "first",
+  "first_last",
+  "f.last",
+  "first-last",
+  "last.first",
+  "lastf",
+  "last",
+  "firstl",
+  "fl",
+];
+
+const buildLocal = (
+  template: PatternTemplate,
+  { first, last }: NameParts,
+): string | null => {
+  const fi = first.charAt(0);
+  const li = last?.charAt(0) ?? "";
+  switch (template) {
+    case "first":
+      return first;
+    case "last":
+      return last ?? null;
+    case "first.last":
+      return last ? `${first}.${last}` : null;
+    case "firstlast":
+      return last ? `${first}${last}` : null;
+    case "flast":
+      return last ? `${fi}${last}` : null;
+    case "first_last":
+      return last ? `${first}_${last}` : null;
+    case "f.last":
+      return last ? `${fi}.${last}` : null;
+    case "first-last":
+      return last ? `${first}-${last}` : null;
+    case "last.first":
+      return last ? `${last}.${first}` : null;
+    case "lastf":
+      return last ? `${last}${fi}` : null;
+    case "firstl":
+      return last ? `${first}${li}` : null;
+    case "fl":
+      return last ? `${fi}${li}` : null;
+    default:
+      return null;
+  }
+};
+
+// Resolve {first,last} from explicit fields or a full name. Null when there
+// isn't even a first name to work with.
 export const parseName = (input: NameInput): NameParts | null => {
   const explicitFirst = input.firstName?.trim();
   if (explicitFirst) {
@@ -33,37 +102,37 @@ export const parseName = (input: NameInput): NameParts | null => {
   return { first, last: last || undefined };
 };
 
-// Candidate emails in rough real-world likelihood order. With a last name we
-// emit the full corporate pattern set; first-name-only collapses to the handful
-// that make sense. Deduped, lower-cased.
-export const emailPatterns = (name: NameParts, domain: string): string[] => {
-  const { first, last } = name;
-  const fi = first.charAt(0);
-  const li = last?.charAt(0) ?? "";
-  const locals = last
-    ? [
-        `${first}.${last}`,
-        `${first}${last}`,
-        `${fi}${last}`,
-        first,
-        `${first}_${last}`,
-        `${fi}.${last}`,
-        `${first}-${last}`,
-        `${last}.${first}`,
-        `${last}${fi}`,
-        `${last}`,
-        `${first}${li}`,
-        `${fi}${li}`,
-      ]
-    : [first];
+// Build a concrete address from a known template + a name. Null when the
+// template needs a last name we don't have.
+export const applyTemplate = (
+  template: PatternTemplate,
+  name: NameParts,
+  domain: string,
+): string | null => {
+  const local = buildLocal(template, name);
 
+  return local ? `${local}@${domain}` : null;
+};
+
+export type TemplatedCandidate = { template: PatternTemplate; email: string };
+
+// All candidate addresses (template + email), best-first, deduped.
+export const templatedCandidates = (
+  name: NameParts,
+  domain: string,
+): TemplatedCandidate[] => {
   const seen = new Set<string>();
-  const emails: string[] = [];
-  for (const local of locals) {
+  const out: TemplatedCandidate[] = [];
+  for (const template of TEMPLATE_ORDER) {
+    const local = buildLocal(template, name);
     if (!local || seen.has(local)) continue;
     seen.add(local);
-    emails.push(`${local}@${domain}`);
+    out.push({ email: `${local}@${domain}`, template });
   }
 
-  return emails;
+  return out;
 };
+
+// Just the candidate emails, best-first (kept for the simple call site).
+export const emailPatterns = (name: NameParts, domain: string) =>
+  templatedCandidates(name, domain).map((candidate) => candidate.email);
