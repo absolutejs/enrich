@@ -1,6 +1,6 @@
 {
   "author": "Alex Kahn",
-  "description": "In-house B2B email verification + discovery — MX/SMTP/catch-all verification and decision-maker email finding, so you don't pay PDL/Apollo per lookup.",
+  "description": "In-house B2B enrichment — MX/SMTP/catch-all email verification, decision-maker email finding, and keyless public-profile enrichment (avatars, logos, social handles), so you don't pay PDL/Apollo/Clearbit per lookup.",
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "5.8.3"
@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "types": "./dist/index.d.ts",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "files": [
     "dist",
     "README.md",

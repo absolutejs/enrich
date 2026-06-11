@@ -21,6 +21,15 @@ export {
   type PatternTemplate,
   type TemplatedCandidate,
 } from "./patterns";
+export {
+  companyLogoUrl,
+  personAvatarUrl,
+  socialHandle,
+  socialUrlsFromLinks,
+  validatedAvatarUrl,
+  type PersonAvatarInput,
+  type ProfileLink,
+} from "./profile";
 export { probeMailbox, type SmtpProbeOptions } from "./smtp";
 export {
   verifyEmail,
