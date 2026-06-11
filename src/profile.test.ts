@@ -1,8 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import {
   companyLogoUrl,
   personAvatarCandidates,
   personAvatarUrl,
+  probeImageUrl,
   socialHandle,
   socialUrlsFromLinks,
 } from "./profile";
@@ -137,5 +138,49 @@ describe("personAvatarCandidates", () => {
         twitterUrl: "https://example.com/jane",
       }),
     ).toEqual([]);
+  });
+});
+
+describe("probeImageUrl", () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const stubFetch = (status: number, contentType?: string) => {
+    globalThis.fetch = (async () =>
+      new Response(null, {
+        headers: contentType ? { "content-type": contentType } : {},
+        status,
+      })) as typeof fetch;
+  };
+
+  test("a 2xx image is ok", async () => {
+    stubFetch(200, "image/jpeg");
+    expect(await probeImageUrl("https://img.example/a")).toBe("ok");
+  });
+
+  test("a 2xx non-image is a definitive miss", async () => {
+    stubFetch(200, "text/html");
+    expect(await probeImageUrl("https://img.example/a")).toBe("missing");
+  });
+
+  test("404 is a definitive miss", async () => {
+    stubFetch(404);
+    expect(await probeImageUrl("https://img.example/a")).toBe("missing");
+  });
+
+  test("429 (rate limit) is transient — never cache it as a miss", async () => {
+    stubFetch(429, "application/json");
+    expect(await probeImageUrl("https://img.example/a")).toBe("unknown");
+  });
+
+  test("server errors and network failures are transient", async () => {
+    stubFetch(503);
+    expect(await probeImageUrl("https://img.example/a")).toBe("unknown");
+    globalThis.fetch = (async () => {
+      throw new Error("network down");
+    }) as typeof fetch;
+    expect(await probeImageUrl("https://img.example/a")).toBe("unknown");
   });
 });

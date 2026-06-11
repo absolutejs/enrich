@@ -156,12 +156,19 @@ export const personAvatarCandidates = (
 export const personAvatarUrl = (person: PersonAvatarInput) =>
   personAvatarCandidates(person)[0]?.url ?? null;
 
-// HEAD-validate that a URL actually resolves to an image — for when you
-// persist an avatar URL instead of letting the client's onerror handle misses.
-export const validateImageUrl = async (
+export type ImageProbeResult = "ok" | "missing" | "unknown";
+
+// HEAD-probe an image URL, distinguishing a DEFINITIVE miss from a TRANSIENT
+// failure: "missing" only when the server positively says there's no image
+// (404/410, or a 2xx that isn't an image); "unknown" for rate limits (429),
+// auth walls, server errors, and network failures. Callers that persist the
+// outcome must only cache definitive results — caching "unknown" as a miss
+// poisons the cache permanently the moment a provider rate-limits you
+// (unavatar allows ~25 requests per window per IP).
+export const probeImageUrl = async (
   url: string,
   timeoutMs: number = DEFAULT_VALIDATE_TIMEOUT_MS,
-) => {
+): Promise<ImageProbeResult> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -170,16 +177,30 @@ export const validateImageUrl = async (
       redirect: "follow",
       signal: controller.signal,
     });
-    if (!response.ok) return false;
-    const type = response.headers.get("content-type");
+    if (response.ok) {
+      const type = response.headers.get("content-type");
 
-    return type === null || type.startsWith("image/");
+      return type === null || type.startsWith("image/") ? "ok" : "missing";
+    }
+
+    return response.status === 404 || response.status === 410
+      ? "missing"
+      : "unknown";
   } catch {
-    return false;
+    return "unknown";
   } finally {
     clearTimeout(timer);
   }
 };
+
+// HEAD-validate that a URL actually resolves to an image — for when you
+// persist an avatar URL instead of letting the client's onerror handle misses.
+// Collapses probeImageUrl's transient "unknown" into false; use probeImageUrl
+// directly when you cache the outcome.
+export const validateImageUrl = async (
+  url: string,
+  timeoutMs: number = DEFAULT_VALIDATE_TIMEOUT_MS,
+) => (await probeImageUrl(url, timeoutMs)) === "ok";
 
 // The first candidate that HEAD-validates, best-first — server-side, so you
 // only persist a URL that actually resolves to a real image.
