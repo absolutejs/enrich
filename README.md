@@ -75,3 +75,28 @@ pattern (free, zero abuse signature), a specialist verifier confirms it, and you
 **store the confirmed `template` per domain** — over time that learned dataset,
 built from real outcomes rather than probing, is the moat the paid providers
 actually have.
+
+## Public-profile enrichment (`@absolutejs/enrich/profile`)
+
+Keyless avatar/logo derivation from identifiers you already have — no per-lookup
+API. Browser-safe subpath (no `node:` imports), so the same module runs in your
+backend and your frontend bundle:
+
+- **`personAvatarCandidates({ imageUrl?, email?, twitterUrl?, instagramUrl?, githubUrl? })`**
+  — every avatar URL derivable from the person's identifiers, best-first:
+  a photo you sourced yourself, then email (Gravatar et al. via
+  [unavatar.io](https://unavatar.io)), then X / Instagram / GitHub handles.
+  Use it to offer a *choice* of avatars.
+- **`personAvatarUrl(person)`** — the first (most trusted) candidate, or `null`.
+  unavatar URLs carry `fallback=false`, so they 404 when nothing is found and an
+  `<img onerror>` can drop to initials. Loading from the client keeps the
+  identifier off your server's egress.
+- **`validatedAvatarUrl(person, timeoutMs?)`** — server-side: the first candidate
+  that HEAD-validates as a real image, for when you persist the result.
+- **`validateImageUrl(url, timeoutMs?)`** — HEAD-check any image URL.
+- **`companyLogoUrl(website, sizePx?)`** — company logo via Google's keyless
+  favicon service (Clearbit's logo API is sunset; DuckDuckGo has gaps).
+- **`socialUrlsFromLinks(links)`** — sort a loose `{ url, platform? }[]` link
+  list (an LLM's "notable links", a scraped profile) into canonical per-platform
+  URL fields, matching the declared platform first and the URL host second.
+- **`socialHandle(url, hosts)`** — extract a clean handle from a profile URL.

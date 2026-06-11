@@ -23,10 +23,14 @@ export {
 } from "./patterns";
 export {
   companyLogoUrl,
+  personAvatarCandidates,
   personAvatarUrl,
   socialHandle,
   socialUrlsFromLinks,
+  validateImageUrl,
   validatedAvatarUrl,
+  type AvatarCandidate,
+  type AvatarSource,
   type PersonAvatarInput,
   type ProfileLink,
 } from "./profile";

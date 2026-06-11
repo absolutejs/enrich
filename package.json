@@ -10,19 +10,29 @@
     "access": "public"
   },
   "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./profile": {
+      "types": "./dist/profile.d.ts",
+      "default": "./dist/profile.js"
+    }
+  },
   "name": "@absolutejs/enrich",
   "repository": {
     "type": "git",
     "url": "https://github.com/absolutejs/enrich.git"
   },
   "scripts": {
-    "build": "rm -rf dist && bun build src/index.ts --outdir dist --target=bun && tsc --emitDeclarationOnly --project tsconfig.json",
+    "build": "rm -rf dist && bun build src/index.ts --outdir dist --target=bun && bun build src/profile.ts --outdir dist --target=browser && tsc --emitDeclarationOnly --project tsconfig.json",
     "release": "bun run build && bun publish",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "types": "./dist/index.d.ts",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "files": [
     "dist",
     "README.md",

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   companyLogoUrl,
+  personAvatarCandidates,
   personAvatarUrl,
   socialHandle,
   socialUrlsFromLinks,
@@ -109,5 +110,32 @@ describe("personAvatarUrl", () => {
   test("returns null when there is nothing to key on", () => {
     expect(personAvatarUrl({})).toBeNull();
     expect(personAvatarUrl({ email: "not-an-email" })).toBeNull();
+  });
+});
+
+describe("personAvatarCandidates", () => {
+  test("enumerates every derivable avatar, best-first", () => {
+    const candidates = personAvatarCandidates({
+      email: "jane@acme.com",
+      githubUrl: "https://github.com/jane",
+      imageUrl: "https://cdn.example.com/jane.jpg",
+      twitterUrl: "https://x.com/jane",
+    });
+    expect(candidates.map((candidate) => candidate.source)).toEqual([
+      "photo",
+      "email",
+      "x",
+      "github",
+    ]);
+    expect(candidates[0]?.url).toBe("https://cdn.example.com/jane.jpg");
+  });
+
+  test("skips identifiers that don't parse", () => {
+    expect(
+      personAvatarCandidates({
+        email: "not-an-email",
+        twitterUrl: "https://example.com/jane",
+      }),
+    ).toEqual([]);
   });
 });

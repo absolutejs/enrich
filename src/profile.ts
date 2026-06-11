@@ -96,36 +96,72 @@ export type PersonAvatarInput = {
   githubUrl?: string | null;
 };
 
-// Best-effort avatar URL for a person, parallel to companyLogoUrl. A photo you
-// already sourced wins; otherwise hand an identifier to unavatar and let the
-// client load it. `fallback=false` makes unavatar 404 when it finds nothing,
-// so the client can drop to initials. When the CLIENT makes the call, your
-// server never ships the identifier to unavatar.
-export const personAvatarUrl = (person: PersonAvatarInput) => {
-  if (person.imageUrl) return person.imageUrl;
-  const email = person.email?.trim();
-  if (email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return `${UNAVATAR}/${encodeURIComponent(email)}?fallback=false`;
-  }
-  const twitter = socialHandle(person.twitterUrl, ["twitter.com", "x.com"]);
-  if (twitter) return `${UNAVATAR}/x/${twitter}?fallback=false`;
-  const instagram = socialHandle(person.instagramUrl, ["instagram.com"]);
-  if (instagram) return `${UNAVATAR}/instagram/${instagram}?fallback=false`;
-  const github = socialHandle(person.githubUrl, ["github.com"]);
-  if (github) return `${UNAVATAR}/github/${github}?fallback=false`;
+export type AvatarSource = "photo" | "email" | "x" | "instagram" | "github";
 
-  return null;
+export type AvatarCandidate = {
+  source: AvatarSource;
+  url: string;
 };
 
-// HEAD-validate the avatar URL server-side so you only persist a URL that
-// actually resolves to a real image — for when you cache the result instead of
-// letting the client's onerror handle misses.
-export const validatedAvatarUrl = async (
+const EMAIL_SHAPE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+// Every avatar URL derivable from the person's identifiers, best-first. The
+// order encodes trust: a photo you sourced yourself, then the email (Gravatar
+// is identity-strong), then social handles roughly by how often the platform
+// avatar is a real face. Use this to offer a CHOICE of avatars; use
+// `personAvatarUrl` when you just need the default.
+export const personAvatarCandidates = (
   person: PersonAvatarInput,
+): AvatarCandidate[] => {
+  const candidates: AvatarCandidate[] = [];
+  if (person.imageUrl) {
+    candidates.push({ source: "photo", url: person.imageUrl });
+  }
+  const email = person.email?.trim();
+  if (email && EMAIL_SHAPE.test(email)) {
+    candidates.push({
+      source: "email",
+      url: `${UNAVATAR}/${encodeURIComponent(email)}?fallback=false`,
+    });
+  }
+  const twitter = socialHandle(person.twitterUrl, ["twitter.com", "x.com"]);
+  if (twitter) {
+    candidates.push({
+      source: "x",
+      url: `${UNAVATAR}/x/${twitter}?fallback=false`,
+    });
+  }
+  const instagram = socialHandle(person.instagramUrl, ["instagram.com"]);
+  if (instagram) {
+    candidates.push({
+      source: "instagram",
+      url: `${UNAVATAR}/instagram/${instagram}?fallback=false`,
+    });
+  }
+  const github = socialHandle(person.githubUrl, ["github.com"]);
+  if (github) {
+    candidates.push({
+      source: "github",
+      url: `${UNAVATAR}/github/${github}?fallback=false`,
+    });
+  }
+
+  return candidates;
+};
+
+// Best-effort avatar URL for a person, parallel to companyLogoUrl — the first
+// (most trusted) candidate. unavatar URLs carry `fallback=false`, so they 404
+// when nothing is found and the client can drop to initials. When the CLIENT
+// makes the call, your server never ships the identifier to unavatar.
+export const personAvatarUrl = (person: PersonAvatarInput) =>
+  personAvatarCandidates(person)[0]?.url ?? null;
+
+// HEAD-validate that a URL actually resolves to an image — for when you
+// persist an avatar URL instead of letting the client's onerror handle misses.
+export const validateImageUrl = async (
+  url: string,
   timeoutMs: number = DEFAULT_VALIDATE_TIMEOUT_MS,
 ) => {
-  const url = personAvatarUrl(person);
-  if (!url) return null;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -134,11 +170,26 @@ export const validatedAvatarUrl = async (
       redirect: "follow",
       signal: controller.signal,
     });
+    if (!response.ok) return false;
+    const type = response.headers.get("content-type");
 
-    return response.ok ? url : null;
+    return type === null || type.startsWith("image/");
   } catch {
-    return null;
+    return false;
   } finally {
     clearTimeout(timer);
   }
+};
+
+// The first candidate that HEAD-validates, best-first — server-side, so you
+// only persist a URL that actually resolves to a real image.
+export const validatedAvatarUrl = async (
+  person: PersonAvatarInput,
+  timeoutMs: number = DEFAULT_VALIDATE_TIMEOUT_MS,
+) => {
+  for (const candidate of personAvatarCandidates(person)) {
+    if (await validateImageUrl(candidate.url, timeoutMs)) return candidate.url;
+  }
+
+  return null;
 };
