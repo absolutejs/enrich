@@ -25,6 +25,10 @@
     "type": "git",
     "url": "https://github.com/absolutejs/enrich.git"
   },
+  "homepage": "https://github.com/absolutejs/enrich",
+  "bugs": {
+    "url": "https://github.com/absolutejs/enrich/issues"
+  },
   "scripts": {
     "build": "rm -rf dist && bun build src/index.ts --outdir dist --target=bun && bun build src/profile.ts --outdir dist --target=browser && tsc --emitDeclarationOnly --project tsconfig.json",
     "release": "bun run build && bun publish",
