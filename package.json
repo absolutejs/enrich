@@ -1,6 +1,6 @@
 {
   "author": "Alex Kahn",
-  "description": "In-house B2B enrichment — MX/SMTP/catch-all email verification, decision-maker email finding, and keyless public-profile enrichment (avatars, logos, social handles), so you don't pay PDL/Apollo/Clearbit per lookup.",
+  "description": "In-house B2B enrichment \u2014 MX/SMTP/catch-all email verification, decision-maker email finding, and keyless public-profile enrichment (avatars, logos, social handles), so you don't pay PDL/Apollo/Clearbit per lookup.",
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "5.8.3"
@@ -18,7 +18,13 @@
     "./profile": {
       "types": "./dist/profile.d.ts",
       "default": "./dist/profile.js"
-    }
+    },
+    "./manifest": {
+      "types": "./dist/manifest.d.ts",
+      "import": "./dist/manifest.js",
+      "default": "./dist/manifest.js"
+    },
+    "./manifest.json": "./dist/manifest.json"
   },
   "name": "@absolutejs/enrich",
   "repository": {
@@ -30,7 +36,7 @@
     "url": "https://github.com/absolutejs/enrich/issues"
   },
   "scripts": {
-    "build": "rm -rf dist && bun build src/index.ts --outdir dist --target=bun && bun build src/profile.ts --outdir dist --target=browser && tsc --emitDeclarationOnly --project tsconfig.json",
+    "build": "rm -rf dist && bun build src/index.ts src/manifest.ts --outdir dist --root ./src --target=bun && bun build src/profile.ts --outdir dist --target=browser && tsc --emitDeclarationOnly --project tsconfig.json && absolute-manifest emit",
     "release": "bun run build && bun publish",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
@@ -41,5 +47,12 @@
     "dist",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "absolutejs": {
+    "manifestContract": 1
+  },
+  "dependencies": {
+    "@absolutejs/manifest": "^0.1.0",
+    "@sinclair/typebox": "^0.34.0"
+  }
 }
