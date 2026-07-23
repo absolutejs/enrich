@@ -19,7 +19,7 @@ const MAX_PORT = 65535;
 /* Serializable subset of VerifyOptions (skipSmtp + SMTP probe knobs). The
  * confirm-step `verifier` and per-domain `knownPattern` are wiring concerns. */
 export const manifest = defineManifest<VerifyOptions, EnrichRuntime>()({
-  contract: 1,
+  contract: 2,
   identity: {
     accent: "#10b981",
     category: "growth",
@@ -76,7 +76,16 @@ export const manifest = defineManifest<VerifyOptions, EnrichRuntime>()({
   }),
   tools: {
     find_email: tool.runtime({
-      annotations: { openWorldHint: true, readOnlyHint: true },
+      annotations: { idempotentHint: true, openWorldHint: true },
+      authorization: {
+        approval: "never",
+        audience: "authenticated",
+        destinations: ["configured-enrichment-provider"],
+        effects: ["read", "external-network"],
+        idempotency: { mode: "host" },
+        requiredScopes: ["contacts:enrich"],
+        reversible: false,
+      },
       description:
         "Find the most likely work email for a person at a company domain. Returns the email, deliverability status, 0–100 confidence, and the pattern template (store it per domain to skip probing next time). Free-provider domains return nothing.",
       handler: async ({ domain, firstName, fullName, lastName }, runtime) => {
@@ -103,7 +112,16 @@ export const manifest = defineManifest<VerifyOptions, EnrichRuntime>()({
       }),
     }),
     verify_email: tool.runtime({
-      annotations: { openWorldHint: true, readOnlyHint: true },
+      annotations: { idempotentHint: true, openWorldHint: true },
+      authorization: {
+        approval: "policy",
+        audience: "authenticated",
+        destinations: ["configured-email-verification-provider"],
+        effects: ["read", "external-network"],
+        idempotency: { mode: "host" },
+        requiredScopes: ["contacts:enrich"],
+        reversible: false,
+      },
       description:
         "Verify one email address: syntax, disposable/free/role heuristics, MX lookup, and (only if the host enabled it) an SMTP probe. Returns status and 0–100 confidence; never reports a false 'undeliverable' when SMTP is unreachable.",
       handler: async ({ email }, runtime) =>
