@@ -1,3 +1,4 @@
+export { bimiLogoUrl, parseBimiRecord } from "./bimi";
 export {
   isDisposableDomain,
   isFreeProvider,
