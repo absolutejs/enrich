@@ -2,7 +2,7 @@
   "author": "Alex Kahn",
   "description": "In-house B2B enrichment — MX/SMTP/catch-all email verification, decision-maker email finding, and keyless public-profile enrichment (avatars, logos, social handles), so you don't pay PDL/Apollo/Clearbit per lookup.",
   "devDependencies": {
-    "@absolutejs/changelog": "^0.5.1",
+    "@absolutejs/changelog": "^0.6.0",
     "@types/bun": "latest",
     "typescript": "5.8.3"
   },
@@ -42,7 +42,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check:package": "absolute-changelog check",
-    "prepublishOnly": "absolute-changelog check"
+    "prepublishOnly": "bun run check:package"
   },
   "types": "./dist/index.d.ts",
   "version": "0.1.4",
