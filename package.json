@@ -2,6 +2,7 @@
   "author": "Alex Kahn",
   "description": "In-house B2B enrichment — MX/SMTP/catch-all email verification, decision-maker email finding, and keyless public-profile enrichment (avatars, logos, social handles), so you don't pay PDL/Apollo/Clearbit per lookup.",
   "devDependencies": {
+    "@absolutejs/changelog": "^0.1.2",
     "@types/bun": "latest",
     "typescript": "5.8.3"
   },
@@ -39,20 +40,23 @@
     "build": "rm -rf dist && bun build src/index.ts src/manifest.ts --outdir dist --root ./src --target=bun && bun build src/profile.ts --outdir dist --target=browser && tsc --emitDeclarationOnly --project tsconfig.json && absolute-manifest emit",
     "release": "bun run build && bun publish",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:package": "absolute-changelog check"
   },
   "types": "./dist/index.d.ts",
   "version": "0.1.4",
   "files": [
-    "dist",
+    "CHANGELOG.md",
+    "LICENSE",
     "README.md",
-    "LICENSE"
+    "changelog.json",
+    "dist"
   ],
   "absolutejs": {
     "manifestContract": 2
   },
   "dependencies": {
-    "@absolutejs/manifest": "^0.4.0",
+    "@absolutejs/manifest": "^0.9.0",
     "@sinclair/typebox": "^0.34.0"
   }
 }

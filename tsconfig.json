@@ -3,7 +3,9 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["bun"],
+    "types": [
+      "bun"
+    ],
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
@@ -13,6 +15,11 @@
     "esModuleInterop": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": [
+    "src",
+    "changelog/**/*"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ]
 }
