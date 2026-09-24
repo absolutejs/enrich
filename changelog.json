@@ -1,5 +1,16 @@
 {
 	"contract": 1,
 	"name": "@absolutejs/enrich",
-	"releases": []
+	"releases": [
+		{
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Add public-suffix-aware exact company domain matching and source-bound published-contact evidence validation"
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.1.5"
+		}
+	]
 }

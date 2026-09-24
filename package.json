@@ -45,7 +45,7 @@
     "prepublishOnly": "bun run check:package"
   },
   "types": "./dist/index.d.ts",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "files": [
     "CHANGELOG.md",
     "LICENSE",
@@ -58,6 +58,7 @@
   },
   "dependencies": {
     "@absolutejs/manifest": "^0.9.0",
-    "@sinclair/typebox": "^0.34.0"
+    "@sinclair/typebox": "^0.34.0",
+    "tldts": "^7.4.13"
   }
 }

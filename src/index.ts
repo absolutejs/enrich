@@ -49,3 +49,11 @@ export {
   type EmailVerifier,
   type VerifierResult,
 } from "./verifier";
+
+export {
+  domainFromUrl,
+  registrableDomain,
+  emailDomainMatchesCompany,
+  validatePublicContactEvidence,
+  type PublicContactEvidence,
+} from "./evidence";
